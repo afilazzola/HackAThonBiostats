@@ -1,0 +1,152 @@
+---
+title: "index"
+output:
+  html_document:
+    theme: yeti
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+---
+#An exploration of Halloween candy sales.
+
+###Purpose
+To examine candy sales patterns in Canada and the USA and explore a limited set of potential consequences.
+
+### Load Libraries
+```{r}
+library(tidyverse)
+```
+
+### Load Data
+```{r}
+canCandy <-read.csv("data/canadian.candy.sales.csv")
+humanPop <-read.csv("data/human.pop.density.csv")
+usaCandy <- read.csv("data//usa.halloween.spending.csv")
+```
+
+### EDA
+```{r}
+## Using Tibble
+as_data_frame(canCandy)
+
+## Using compact display
+str(canCandy)
+
+## others views
+head(canCandy)
+
+## see change in sales over years
+ggplot(canCandy) +geom_boxplot(mapping = aes(year, candy.sales)) + coord_flip()
+
+## need as a factor
+canCandy$year <-as.factor(canCandy$year)
+str(canCandy)
+
+## plot again with factor
+ggplot(canCandy) +geom_boxplot(mapping = aes(year, candy.sales)) + coord_flip()
+
+## see the difference in sales over months
+canCandy$month <-as.factor(canCandy$month)
+ggplot(canCandy) +geom_boxplot(mapping = aes(month, candy.sales)) + coord_flip()
+
+
+## see the difference in sales in just October
+octCandy <- canCandy %>% filter(month == 10) 
+
+## plot change in October
+ggplot(octCandy) +geom_point(mapping = aes(year, candy.sales))
+
+## Clean up plot
+ggplot(octCandy) +geom_point(mapping = aes(year, candy.sales)) + ylab("Candy Sales ($)") + xlab("Year") + theme_classic()
+```
+
+
+
+### Fitting a linear model with October Candy Sales
+```{r}
+## check distribution of data
+hist(octCandy$candy.sales)
+
+
+
+## fit a linear model
+m1 <- lm(candy.sales ~ as.numeric(year), data= octCandy)
+summary(m1) 
+
+## check model fit
+hist(m1$residuals)
+shapiro.test(m1$residuals)
+
+## fit a linear model
+m2 <- lm(log(candy.sales) ~ as.numeric(year), data= octCandy)
+summary(m2) 
+
+## check model fit
+hist(m2$residuals)
+shapiro.test(m2$residuals)
+
+## Plot again but log-transformed
+ggplot(octCandy) +geom_point(mapping = aes(year, log(candy.sales))) + ylab("Candy Sales ($)") + xlab("Year") + theme_classic()
+
+## Plot again but corrected y-axis
+ggplot(octCandy, aes(as.numeric(year), candy.sales)) +geom_point() + ylab("Candy Sales ($)") + xlab("Year")  +  scale_y_log10(limits = c(100000,500000)) + geom_smooth(method=lm)
+
+anova(m2, test="Chisq")
+
+```
+
+### Fitting a linear model with average yearly Candy
+```{r}
+avgCandy <- canCandy %>% group_by(year) %>%  summarize(sales=mean(candy.sales),error=sd(candy.sales))
+
+hist(avgCandy$sales)
+
+## fit a linear model 
+m3 <- lm(sales ~ as.numeric(year), data=avgCandy)
+summary(m3)
+
+## check normality
+shapiro.test(m3$residuals)
+
+
+## fit a linear model with log transformed
+m4 <- lm(log(sales) ~ as.numeric(year), data=avgCandy)
+summary(m4)
+
+## check normality
+shapiro.test(m4$residuals)
+
+```
+
+### check the best month over years
+```{r}
+
+totalMonth <- canCandy %>% group_by(year, month) %>% summarize(sales=sum(candy.sales))
+
+## best month
+totalMonth %>% group_by(year) %>% slice(which.max(sales))
+
+## worst month
+totalMonth %>% group_by(year) %>% slice(which.min(sales))
+
+## create column for cost to stay in business
+totalMonth <- totalMonth %>%  mutate(profit = ifelse(sales > 200000, 1, 0))
+
+## check the profit over time
+ggplot(totalMonth) + geom_bar(aes(x=year, y=profit), stat="identity")
+
+
+## GLM to determine if the change is significant
+m1 <- glm(profit ~ as.numeric(year), family="binomial", data=totalMonth)
+summary(m1)
+
+anova(m1, test="Chisq")
+
+```
+
+
+
+
+
