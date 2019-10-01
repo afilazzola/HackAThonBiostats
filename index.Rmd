@@ -1,5 +1,5 @@
 ---
-title: "index"
+title: "An exploration of Halloween candy sales."
 output:
   html_document:
     theme: yeti
@@ -9,7 +9,6 @@ output:
   pdf_document:
     toc: yes
 ---
-#An exploration of Halloween candy sales.
 
 ###Purpose
 To examine candy sales patterns in Canada and the USA and explore a limited set of potential consequences.
@@ -119,6 +118,39 @@ summary(m4)
 shapiro.test(m4$residuals)
 
 ```
+
+### Compare October sales to annual sales
+```{r}
+## Calculate average yearly sales
+annual.sales <-canCandy %>% group_by(year) %>% summarise(totalYear = sum(candy.sales))
+annual.sales
+
+## divide october sales by year
+octCandy <- octCandy %>% mutate(weighted = candy.sales/annual.sales$totalYear)
+octCandy
+
+## make it a percentage
+octCandy <- octCandy %>% mutate(weighted = candy.sales/annual.sales$totalYear*100)
+octCandy
+
+## plot
+ggplot(octCandy, aes(year, weighted)) + geom_point()
+
+## check if there is a trend over time
+m1 <- lm(weighted ~ as.numeric(year), data=octCandy)
+summary(m1)
+
+## test normality
+shapiro.test(m1$residuals)
+
+## plot
+ggplot(octCandy, aes(as.numeric(year), weighted)) + geom_point() + geom_smooth(method="lm") + ylab("Proportion of October sales for the year (%)")
+
+## A polynomial?
+ggplot(octCandy, aes(as.numeric(year), weighted)) + geom_point() + geom_smooth(method="gam", formula= y ~ s(x))+ ylab("Proportion of October sales for the year (%)")
+
+```
+
 
 ### check the best month over years
 ```{r}
