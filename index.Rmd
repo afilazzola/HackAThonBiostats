@@ -25,6 +25,13 @@ humanPop <-read.csv("data/human.pop.density.csv")
 usaCandy <- read.csv("data//usa.halloween.spending.csv")
 ```
 
+### Questions
+1. How have Halloween candy sales changed over time?
+2. How much does Halloween candy sales relate to yearly candy sales?
+3. Is October the best month for candy sales?
+4. Are current candy sales "profitable"?
+
+
 ### EDA
 ```{r}
 ## Using Tibble
@@ -162,7 +169,10 @@ totalMonth %>% group_by(year) %>% slice(which.max(sales))
 
 ## worst month
 totalMonth %>% group_by(year) %>% slice(which.min(sales))
+```
 
+### Are candy sales profitable?
+```{r}
 ## create column for cost to stay in business
 totalMonth <- totalMonth %>%  mutate(profit = ifelse(sales > 200000, 1, 0))
 
